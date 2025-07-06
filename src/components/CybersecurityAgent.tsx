@@ -92,59 +92,160 @@ const CybersecurityAgent = () => {
     "⚡ Correlating threat intelligence..."
   ];
 
-  // Fetch IP information using a free IP geolocation service
+  // Fetch real IP information using nslookup.io API
   const fetchIPInfo = async (domain: string): Promise<IPInfo | null> => {
     try {
-      console.log(`Fetching IP info for domain: ${domain}`);
+      console.log(`Fetching real IP info for domain: ${domain}`);
       
-      // Try to resolve IP using a CORS-enabled service
-      const response = await fetch(`https://api.ipify.org?format=json`);
-      if (!response.ok) throw new Error('IP resolution failed');
+      // Use nslookup.io API for DNS resolution
+      const dnsResponse = await fetch(`https://api.nslookup.io/v1/dns-query/${domain}`);
+      if (!dnsResponse.ok) {
+        console.warn('nslookup.io failed, trying alternative method');
+        throw new Error('DNS resolution failed');
+      }
       
-      // For demo purposes, simulate IP resolution with geolocation data
-      // In production, you would use services like ipapi.co, ipinfo.io, or similar
-      const mockIPInfo: IPInfo = {
-        ip: generateMockIP(),
-        country: getRandomCountry(),
-        region: "Unknown Region",
-        city: getRandomCity(),
-        org: getRandomOrg(),
-        timezone: "UTC",
-        isp: getRandomISP()
+      const dnsData = await dnsResponse.json();
+      console.log('DNS Response:', dnsData);
+      
+      // Extract IP from A records
+      let resolvedIP = null;
+      if (dnsData.answer && dnsData.answer.length > 0) {
+        const aRecord = dnsData.answer.find((record: any) => record.type === 'A');
+        if (aRecord) {
+          resolvedIP = aRecord.data;
+        }
+      }
+      
+      if (!resolvedIP) {
+        throw new Error('No A record found');
+      }
+      
+      console.log(`Resolved IP: ${resolvedIP}`);
+      
+      // Get geolocation data using a free IP geolocation service
+      const geoResponse = await fetch(`https://ipapi.co/${resolvedIP}/json/`);
+      let geoData = null;
+      
+      if (geoResponse.ok) {
+        geoData = await geoResponse.json();
+        console.log('Geolocation data:', geoData);
+      } else {
+        console.warn('Geolocation lookup failed');
+      }
+      
+      const ipInfo: IPInfo = {
+        ip: resolvedIP,
+        country: geoData?.country_name || 'Unknown',
+        region: geoData?.region || 'Unknown Region',
+        city: geoData?.city || 'Unknown City',
+        org: geoData?.org || 'Unknown Organization',
+        timezone: geoData?.timezone || 'UTC',
+        isp: geoData?.org || 'Unknown ISP'
       };
       
-      console.log('IP Info resolved:', mockIPInfo);
-      return mockIPInfo;
+      console.log('Final IP Info:', ipInfo);
+      return ipInfo;
+      
     } catch (error) {
-      console.error('Failed to fetch IP info:', error);
+      console.error('Failed to fetch real IP info:', error);
+      
+      // Fallback: try alternative DNS resolution
+      try {
+        console.log('Trying alternative DNS resolution...');
+        const fallbackResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.Answer && fallbackData.Answer.length > 0) {
+            const ip = fallbackData.Answer[0].data;
+            console.log(`Fallback resolved IP: ${ip}`);
+            return {
+              ip: ip,
+              country: 'Unknown (DNS only)',
+              region: 'Unknown Region',
+              city: 'Unknown City',
+              org: 'Unknown Organization',
+              timezone: 'UTC',
+              isp: 'Unknown ISP'
+            };
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fallback DNS resolution also failed:', fallbackError);
+      }
+      
       return null;
     }
   };
 
-  // Fetch WHOIS data (simulated due to CORS restrictions)
+  // Fetch real WHOIS data using WHOIS API
   const fetchWhoisData = async (domain: string): Promise<WhoisData | null> => {
     try {
-      console.log(`Fetching WHOIS data for domain: ${domain}`);
+      console.log(`Fetching real WHOIS data for domain: ${domain}`);
       
-      // Simulate WHOIS data since direct WHOIS queries aren't possible from browser
-      const mockWhoisData: WhoisData = {
-        domain: domain,
-        registrar: getRandomRegistrar(),
-        registrationDate: getRandomRegistrationDate(),
-        expirationDate: getRandomExpirationDate(),
-        nameServers: [
-          `ns1.${domain}`,
-          `ns2.${domain}`
-        ],
-        registrantCountry: getRandomCountry(),
-        registrantOrganization: getRandomOrg()
-      };
+      // Try using a WHOIS API service
+      const whoisResponse = await fetch(`https://api.whoxy.com/?key=free&whois=${domain}`);
       
-      console.log('WHOIS data resolved:', mockWhoisData);
-      return mockWhoisData;
+      if (whoisResponse.ok) {
+        const whoisData = await whoisResponse.json();
+        console.log('WHOIS API Response:', whoisData);
+        
+        if (whoisData.status === 1) {
+          const parsedWhoisData: WhoisData = {
+            domain: domain,
+            registrar: whoisData.registrar_name || 'Unknown',
+            registrationDate: whoisData.create_date || 'Unknown',
+            expirationDate: whoisData.expire_date || 'Unknown',
+            nameServers: whoisData.name_servers || [`ns1.${domain}`, `ns2.${domain}`],
+            registrantCountry: whoisData.registrant_country || 'Unknown',
+            registrantOrganization: whoisData.registrant_name || 'Private'
+          };
+          
+          console.log('Parsed WHOIS data:', parsedWhoisData);
+          return parsedWhoisData;
+        }
+      }
+      
+      // Fallback: try alternative WHOIS service
+      console.log('Trying alternative WHOIS service...');
+      const altResponse = await fetch(`https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=at_free&domainName=${domain}&outputFormat=JSON`);
+      
+      if (altResponse.ok) {
+        const altData = await altResponse.json();
+        console.log('Alternative WHOIS Response:', altData);
+        
+        if (altData.WhoisRecord) {
+          const record = altData.WhoisRecord;
+          return {
+            domain: domain,
+            registrar: record.registrarName || 'Unknown',
+            registrationDate: record.createdDate || 'Unknown',
+            expirationDate: record.expiresDate || 'Unknown',
+            nameServers: record.nameServers?.hostNames || [`ns1.${domain}`, `ns2.${domain}`],
+            registrantCountry: record.registrant?.country || 'Unknown',
+            registrantOrganization: record.registrant?.organization || 'Private'
+          };
+        }
+      }
+      
+      throw new Error('All WHOIS services failed');
+      
     } catch (error) {
-      console.error('Failed to fetch WHOIS data:', error);
-      return null;
+      console.error('Failed to fetch real WHOIS data:', error);
+      console.log('Using basic domain analysis as fallback...');
+      
+      // Provide basic analysis based on domain structure
+      const tld = domain.split('.').pop()?.toLowerCase();
+      const isNewTLD = ['tk', 'ml', 'ga', 'cf', 'xyz', 'top', 'click'].includes(tld || '');
+      
+      return {
+        domain: domain,
+        registrar: 'Unknown (API Unavailable)',
+        registrationDate: 'Unknown (API Unavailable)',
+        expirationDate: 'Unknown (API Unavailable)',
+        nameServers: [`ns1.${domain}`, `ns2.${domain}`],
+        registrantCountry: 'Unknown (API Unavailable)',
+        registrantOrganization: isNewTLD ? 'Possibly suspicious TLD' : 'Unknown (API Unavailable)'
+      };
     }
   };
 
@@ -163,19 +264,17 @@ const CybersecurityAgent = () => {
         setAnalysisProgress((i + 1) / analysisStages.length * 100);
         
         // Add realistic delay for each stage
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Fetch real data during appropriate stages
         if (i === 0) {
-          // Stage 1: IP Resolution
-          console.log('Starting IP resolution...');
+          console.log('Starting real IP resolution...');
         } else if (i === 1) {
-          // Stage 2: WHOIS lookup
-          console.log('Starting WHOIS lookup...');
+          console.log('Starting real WHOIS lookup...');
         }
       }
 
-      // Fetch IP and WHOIS data
+      // Fetch real IP and WHOIS data
       const [ipInfo, whoisData] = await Promise.all([
         fetchIPInfo(domain),
         fetchWhoisData(domain)
@@ -226,7 +325,7 @@ const CybersecurityAgent = () => {
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
-        description: "Unable to complete cybersecurity analysis. Please try again.",
+        description: "Unable to complete cybersecurity analysis. Please check the URL format and try again.",
         variant: "destructive",
       });
     } finally {
@@ -306,11 +405,6 @@ const CybersecurityAgent = () => {
     if (!features.usesHTTPS) score += 20;
     
     return Math.min(100, score);
-  };
-
-  // Mock data generators
-  const generateMockIP = () => {
-    return `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
   };
 
   const getRandomCountry = () => {
