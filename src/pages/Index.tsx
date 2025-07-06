@@ -1,5 +1,6 @@
-
 import AdvancedPhishingDetector from "@/components/AdvancedPhishingDetector";
+import CybersecurityAgent from "@/components/CybersecurityAgent";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   return (
@@ -41,7 +42,24 @@ const Index = () => {
           </div>
         </div>
         
-        <AdvancedPhishingDetector />
+        <Tabs defaultValue="cybersecurity" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-white/10 border border-white/20 mb-8">
+            <TabsTrigger value="cybersecurity" className="text-white data-[state=active]:bg-red-500/30">
+              🛡️ Cybersecurity Agent
+            </TabsTrigger>
+            <TabsTrigger value="advanced" className="text-white data-[state=active]:bg-blue-500/30">
+              🔍 Advanced Detector
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cybersecurity">
+            <CybersecurityAgent />
+          </TabsContent>
+
+          <TabsContent value="advanced">
+            <AdvancedPhishingDetector />
+          </TabsContent>
+        </Tabs>
         
         <div className="mt-20 grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
