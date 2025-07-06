@@ -15,7 +15,7 @@ const Index = () => {
             </div>
           </div>
           <h1 className="text-6xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 via-cyan-300 to-green-400 bg-clip-text text-transparent">
-            PhishGuard AI
+            ZeroPhish AI
           </h1>
           <div className="text-2xl text-blue-200 max-w-3xl mx-auto mb-4">
             Next-Generation AI-Powered Phishing Detection Platform
