@@ -52,8 +52,8 @@ const URLAnalyzer = ({ url, setUrl, onAnalyze, isAnalyzing }: URLAnalyzerProps) 
   return (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-semibold text-white mb-2">URL Threat Analysis</h2>
-        <p className="text-blue-200">Enter a URL to check for phishing and security threats</p>
+        <h2 className="text-2xl font-semibold text-white mb-2">Enhanced URL Threat Analysis</h2>
+        <p className="text-blue-200">Enter a URL to check for phishing and security threats using advanced ML algorithms</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,14 +101,20 @@ const URLAnalyzer = ({ url, setUrl, onAnalyze, isAnalyzing }: URLAnalyzerProps) 
       </form>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-        {['https://google.com', 'https://github.com', 'http://suspicious-site.tk', 'https://paypaI.com'].map((exampleUrl, index) => (
+        {[
+          { url: 'https://google.com', label: 'Safe Site' },
+          { url: 'https://github.com', label: 'Legitimate' },
+          { url: 'http://g00gle-verify-account.tk', label: 'Suspicious' },
+          { url: 'https://paypaI-secure-login.click', label: 'Phishing' }
+        ].map((example, index) => (
           <button
             key={index}
-            onClick={() => setUrl(exampleUrl)}
+            onClick={() => setUrl(example.url)}
             disabled={isAnalyzing}
             className="p-3 text-sm bg-white/5 hover:bg-white/10 border border-white/20 rounded-lg text-blue-200 hover:text-white transition-all duration-200 disabled:opacity-50"
           >
-            Test URL {index + 1}
+            <div className="font-medium">{example.label}</div>
+            <div className="text-xs text-white/60 mt-1">Test URL</div>
           </button>
         ))}
       </div>

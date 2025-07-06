@@ -9,10 +9,12 @@ const FeatureAnalysis = ({ result }: FeatureAnalysisProps) => {
   const features = [
     {
       name: "Domain Security",
-      status: !result.features.suspiciousDomain,
-      description: result.features.suspiciousDomain 
-        ? "Domain appears suspicious or uses IP address"
-        : "Domain appears legitimate"
+      status: !result.features.suspiciousDomain && !result.features.hasIPAddress,
+      description: result.features.hasIPAddress 
+        ? "Uses IP address instead of domain name (HIGH RISK)"
+        : result.features.suspiciousDomain 
+          ? "Domain appears suspicious or uses URL shortener"
+          : "Domain appears legitimate"
     },
     {
       name: "HTTPS Protocol",
@@ -22,11 +24,11 @@ const FeatureAnalysis = ({ result }: FeatureAnalysisProps) => {
         : "Not using secure HTTPS protocol"
     },
     {
-      name: "URL Length",
-      status: result.features.urlLength <= 100,
-      description: `URL length: ${result.features.urlLength} characters ${
-        result.features.urlLength > 100 ? "(suspiciously long)" : "(normal)"
-      }`
+      name: "Top-Level Domain",
+      status: !result.features.suspiciousTLD,
+      description: result.features.suspiciousTLD
+        ? "Uses suspicious TLD often associated with scams"
+        : "Uses standard top-level domain"
     },
     {
       name: "Domain Mimicking",
@@ -36,20 +38,38 @@ const FeatureAnalysis = ({ result }: FeatureAnalysisProps) => {
         : "No domain impersonation detected"
     },
     {
-      name: "Subdomain Analysis",
-      status: !result.features.hasSubdomains || !result.features.suspiciousDomain,
+      name: "URL Length",
+      status: result.features.urlLength <= 100,
+      description: `URL length: ${result.features.urlLength} characters ${
+        result.features.urlLength > 150 ? "(very long - suspicious)" : 
+        result.features.urlLength > 100 ? "(long)" : "(normal)"
+      }`
+    },
+    {
+      name: "Suspicious Keywords",
+      status: !result.features.containsSuspiciousKeywords,
+      description: result.features.containsSuspiciousKeywords
+        ? "Contains multiple suspicious keywords"
+        : "No suspicious keyword patterns detected"
+    },
+    {
+      name: "Redirect Analysis", 
+      status: !result.features.hasRedirect,
+      description: result.features.hasRedirect
+        ? "Contains redirect mechanisms"
+        : "No redirect patterns detected"
+    },
+    {
+      name: "Subdomain Structure",
+      status: !result.features.hasSubdomains || (!result.features.suspiciousDomain && !result.features.mimicsKnownSites),
       description: result.features.hasSubdomains
         ? "Multiple subdomains detected"
         : "Clean domain structure"
-    },
-    {
-      name: "Special Characters",
-      status: !result.features.hasSpecialChars,
-      description: result.features.hasSpecialChars
-        ? "Contains suspicious special characters"
-        : "No suspicious characters detected"
     }
   ];
+
+  const passedChecks = features.filter(f => f.status).length;
+  const totalChecks = features.length;
 
   return (
     <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
@@ -57,7 +77,7 @@ const FeatureAnalysis = ({ result }: FeatureAnalysisProps) => {
         <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
-        <span>Detailed Feature Analysis</span>
+        <span>Enhanced Security Analysis</span>
       </h3>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -93,13 +113,13 @@ const FeatureAnalysis = ({ result }: FeatureAnalysisProps) => {
           <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="text-blue-400 font-semibold">Analysis Summary</span>
+          <span className="text-blue-400 font-semibold">Enhanced Analysis Summary</span>
         </div>
         <p className="text-white/80 text-sm">
-          Our AI model analyzed {features.length} key security indicators. 
-          {features.filter(f => f.status).length} features passed security checks, while{' '}
-          {features.filter(f => !f.status).length} raised potential concerns. 
-          This analysis is performed locally in your browser for maximum privacy.
+          Our enhanced AI model analyzed {totalChecks} comprehensive security indicators. 
+          {passedChecks} features passed security checks, while {totalChecks - passedChecks} raised potential concerns. 
+          The analysis includes advanced phishing detection techniques like typosquatting detection, 
+          suspicious keyword analysis, and domain reputation checking.
         </p>
       </div>
     </div>
